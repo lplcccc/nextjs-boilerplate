@@ -12,43 +12,43 @@
 graph TB
     Start[开始] --> CheckOperation{是新增还是更新?}
     
-    CheckOperation -->|新增| AddValidation[validateRuleForAdd]
-    CheckOperation -->|更新| UpdateValidation[validateRuleForUpdate]
+    CheckOperation -->|新增| AddValidation[新增校验]
+    CheckOperation -->|更新| UpdateValidation[更新校验]
     
-    AddValidation --> Step1[1. 校验规则参数 validateRuleParameters]
+    AddValidation --> Step1[校验规则参数]
     UpdateValidation --> Step1
     
     Step1 --> CheckRuleType{规则类型?}
     
-    CheckRuleType -->|时间约束| TimeValidation[校验时间约束参数<br/>- 医嘱频次校验<br/>- 治疗时长校验<br/>- 医嘱有效期校验<br/>三选一且必选]
+    CheckRuleType -->|时间约束| TimeValidation[时间约束参数校验<br/>三选一且必选]
     
-    CheckRuleType -->|资源约束| ResourceValidation[校验资源约束参数]
+    CheckRuleType -->|资源约束| ResourceValidation[资源约束参数校验]
     
     ResourceValidation --> CheckResourceType{资源类型?}
-    CheckResourceType -->|治疗师| TherapistValidation[校验治疗师参数<br/>- 最大并发任务数必填且>0]
-    CheckResourceType -->|治疗地点| LocationValidation[校验治疗地点参数<br/>- 最大容量必填且>0]
+    CheckResourceType -->|治疗师| TherapistValidation[治疗师参数校验<br/>最大并发任务数必填]
+    CheckResourceType -->|治疗地点| LocationValidation[治疗地点参数校验<br/>最大容量必填]
     
-    TimeValidation --> Step2[2. 标准化适用条件 normalizeApplicableConditions]
+    TimeValidation --> Step2[标准化适用条件]
     TherapistValidation --> Step2
     LocationValidation --> Step2
     
-    Step2 --> NormalizeConditions[根据规则类型设置适用条件<br/>- 资源约束+治疗地点: 只用地点条件<br/>- 其他: 用治疗项目和患者类型]
+    Step2 --> NormalizeConditions[设置适用条件<br/>根据规则类型自动配置]
     
-    NormalizeConditions --> Step3[3. 校验联合主键唯一性 validateUniqueConstraint<br/>RuleType + Parameters + Conditions 必须唯一]
+    NormalizeConditions --> Step3[校验联合主键唯一性]
     
-    Step3 --> Step4[4. 校验治疗项目交集 validateTreatmentTypesIntersection]
+    Step3 --> Step4[校验治疗项目交集]
     
-    Step4 --> CheckUseTreatment{是否使用治疗项目?}
+    Step4 --> CheckUseTreatment{使用治疗项目?}
     
-    CheckUseTreatment -->|否<br/>资源约束+治疗地点| End[校验完成]
-    CheckUseTreatment -->|是| CheckIntersection[检查相同规则类型和参数下<br/>治疗项目是否有交集]
+    CheckUseTreatment -->|否| End[校验完成]
+    CheckUseTreatment -->|是| CheckIntersection[检查项目交集]
     
-    CheckIntersection --> CheckEmpty{是否有空列表<br/>适用所有?}
-    CheckEmpty -->|是| Error1[错误: 存在适用所有项目的规则]
-    CheckEmpty -->|否| CheckOverlap{项目是否有交集?}
+    CheckIntersection --> CheckEmpty{有空列表?}
+    CheckEmpty -->|是| Error1[错误: 适用所有项目]
+    CheckEmpty -->|否| CheckOverlap{有交集?}
     
-    CheckOverlap -->|有交集| Error2[错误: 治疗项目存在冲突]
-    CheckOverlap -->|无交集| End
+    CheckOverlap -->|有| Error2[错误: 项目冲突]
+    CheckOverlap -->|无| End
     
     Error1 --> ThrowException[抛出异常]
     Error2 --> ThrowException
